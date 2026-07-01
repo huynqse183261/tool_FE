@@ -316,3 +316,24 @@
   &--gold { background: #c9a84c; color: #000; &:hover:not(:disabled) { opacity: 0.85; } }
   &--danger { background: transparent; border: 1px solid #e05c5c; color: #e05c5c; &:hover:not(:disabled) { background: rgba(224, 92, 92, 0.1); } }
 }
+.draft-list-header__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.draft-list-header__video {
+  background: transparent;
+  border: 1px solid #c9a84c;
+  color: #c9a84c;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #c9a84c;
+    color: #000;
+  }
+}

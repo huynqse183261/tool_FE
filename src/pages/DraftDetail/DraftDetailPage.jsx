@@ -8,6 +8,7 @@ import {
   schedulePostApi,
   cancelScheduleApi,
   publishPostApi,
+  publishVideoApi,
 } from "../../api/postApi";
 import Navbar from "../../components/Navbar/Navbar";
 import "./DraftDetailPage.scss";
@@ -33,7 +34,7 @@ const DraftDetailPage = () => {
 
   // Generate caption request params
   const [generateParams, setGenerateParams] = useState({
-    contentType: "ProductShowcase",
+    contentType: "",
     sceneType: "",
     productName: "",
     sku: "",
@@ -427,6 +428,50 @@ const DraftDetailPage = () => {
                     onClick={handlePublish}
                     disabled={publishing || isPublished}
                   >
+                    {/* Publish Video button — chỉ hiện khi post là Video type */}
+                    {post.postType === "Video" && !isPublished && (
+                      <div className="editor-section">
+                        <h3>Video</h3>
+                        {post.videoUrl && (
+                          <video
+                            src={post.videoUrl}
+                            controls
+                            style={{
+                              width: "100%",
+                              borderRadius: "8px",
+                              marginBottom: "12px",
+                            }}
+                          />
+                        )}
+                        <button
+                          className="btn btn--gold"
+                          onClick={async () => {
+                            if (
+                              !window.confirm("Publish this video to Facebook?")
+                            )
+                              return;
+                            setPublishing(true);
+                            try {
+                              await publishVideoApi(id, { caption });
+                              showMessage("Video published successfully");
+                              fetchPost();
+                            } catch (err) {
+                              showMessage(
+                                err.response?.data?.message || "Publish failed",
+                                "error",
+                              );
+                            } finally {
+                              setPublishing(false);
+                            }
+                          }}
+                          disabled={publishing}
+                        >
+                          {publishing
+                            ? "Publishing..."
+                            : "🎬 Publish Video to Facebook"}
+                        </button>
+                      </div>
+                    )}
                     {publishing ? "Publishing..." : "🚀 Publish Now"}
                   </button>
                 </div>
