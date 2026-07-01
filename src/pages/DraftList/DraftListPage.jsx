@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDraftsApi, deleteDraftApi, uploadPostApi } from '../../api/postApi';
+import { getDraftsApi, deleteDraftApi, uploadPostApi, uploadVideoPostApi } from '../../api/postApi';
 import Navbar from '../../components/Navbar/Navbar';
 import './DraftListPage.scss';
 
@@ -27,6 +27,14 @@ const DraftListPage = () => {
   const [uploadPreviews, setUploadPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+// Video upload state
+const [showVideoModal, setShowVideoModal] = useState(false);
+const [videoFile, setVideoFile] = useState(null);
+const [videoPreview, setVideoPreview] = useState('');
+const [videoCaption, setVideoCaption] = useState('');
+const [uploadingVideo, setUploadingVideo] = useState(false);
+const [videoError, setVideoError] = useState('');
 
   const fetchPosts = async () => {
     try {
@@ -115,22 +123,131 @@ const DraftListPage = () => {
     setShowUploadModal(false);
     resetUploadModal();
   };
+const handleVideoFileChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
+  // Validate size — Facebook max 10GB but keep reasonable limit
+  if (file.size > 500 * 1024 * 1024) {
+    setVideoError('Video must be under 500MB');
+    return;
+  }
+
+  setVideoFile(file);
+  setVideoPreview(URL.createObjectURL(file));
+  setVideoError('');
+};
+
+const handleVideoUpload = async () => {
+  if (!videoFile) {
+    setVideoError('Please select a video file');
+    return;
+  }
+
+  setUploadingVideo(true);
+  setVideoError('');
+
+  try {
+    const formData = new FormData();
+    formData.append('Video', videoFile);
+    formData.append('Caption', videoCaption);
+
+    const res = await uploadVideoPostApi(formData);
+    const newPostId = res.data.data.postId;
+
+    setShowVideoModal(false);
+    resetVideoModal();
+    navigate(`/drafts/${newPostId}`);
+  } catch (err) {
+    setVideoError(err.response?.data?.message || 'Upload failed');
+  } finally {
+    setUploadingVideo(false);
+  }
+};
+
+const resetVideoModal = () => {
+  setVideoFile(null);
+  setVideoPreview('');
+  setVideoCaption('');
+  setVideoError('');
+};
   return (
     <div className="draft-list-page">
       <Navbar />
       <div className="draft-list-content">
 
-        {/* Header */}
-        <div className="draft-list-header">
-          <h1>Posts</h1>
-          <button
-            className="draft-list-header__new"
-            onClick={() => setShowUploadModal(true)}
-          >
-            + New Post
-          </button>
-        </div>
+       {/* Header — thêm button video */}
+<div className="draft-list-header">
+  <h1>Posts</h1>
+  <div className="draft-list-header__actions">
+    <button className="draft-list-header__new" onClick={() => setShowUploadModal(true)}>
+      + New Post
+    </button>
+    <button className="draft-list-header__video" onClick={() => setShowVideoModal(true)}>
+      + New Video
+    </button>
+  </div>
+</div>
+
+{/* Video Upload Modal */}
+{showVideoModal && (
+  <div className="modal-overlay" onClick={() => { setShowVideoModal(false); resetVideoModal(); }}>
+    <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal__header">
+        <h2>Upload Video</h2>
+        <button className="modal__close" onClick={() => { setShowVideoModal(false); resetVideoModal(); }}>✕</button>
+      </div>
+
+      <div className="modal__body">
+        <label className="upload-dropzone">
+          <input
+            type="file"
+            accept="video/mp4,video/quicktime,video/x-msvideo"
+            onChange={handleVideoFileChange}
+            style={{ display: 'none' }}
+          />
+          {!videoPreview ? (
+            <div className="upload-dropzone__placeholder">
+              <span>🎬</span>
+              <p>Click to select video</p>
+              <small>MP4, MOV, AVI — max 500MB</small>
+            </div>
+          ) : (
+            <video
+              src={videoPreview}
+              controls
+              style={{ width: '100%', borderRadius: '8px', maxHeight: '240px' }}
+            />
+          )}
+        </label>
+
+        <textarea
+          className="editor-section__textarea"
+          placeholder="Write your caption here..."
+          value={videoCaption}
+          onChange={(e) => setVideoCaption(e.target.value)}
+          rows={4}
+          style={{ marginTop: '12px' }}
+        />
+
+        {videoError && <p className="modal__error">{videoError}</p>}
+      </div>
+
+      <div className="modal__footer">
+        <button className="btn btn--secondary" onClick={() => { setShowVideoModal(false); resetVideoModal(); }}>
+          Cancel
+        </button>
+        <button
+          className="btn btn--gold"
+          onClick={handleVideoUpload}
+          disabled={uploadingVideo || !videoFile}
+        >
+          {uploadingVideo ? 'Uploading...' : 'Upload Video'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Status Filter */}
         <div className="draft-list-filters">
@@ -236,7 +353,7 @@ const DraftListPage = () => {
                   <div className="upload-dropzone__placeholder">
                     <span>📁</span>
                     <p>Click to select images</p>
-                    <small>Max 10 images</small>
+                    <small>Max 20 images</small>
                   </div>
                 ) : (
                   <div className="upload-dropzone__previews">

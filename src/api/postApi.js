@@ -34,3 +34,11 @@ export const publishPostApi = (postId, data) =>
 
 export const getPublishedPostsApi = () =>
   axiosInstance.get('/posts/published');
+
+export const uploadVideoPostApi = (formData) =>
+  axiosInstance.post('/posts/upload-video', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+export const publishVideoApi = (postId, data) =>
+  axiosInstance.post(`/posts/${postId}/publish-video`, data);
